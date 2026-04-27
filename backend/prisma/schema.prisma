@@ -7,7 +7,7 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-// Example model — replace or extend with your domain models
+// ─── User ────────────────────────────────────────────────────────────────────
 model User {
   id        String   @id @default(cuid())
   email     String   @unique
@@ -15,5 +15,134 @@ model User {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
+  snippets    Snippet[]
+  collections Collection[]
+  tags        Tag[]
+
+  @@index([email])
   @@map("users")
+}
+
+// ─── Snippet ──────────────────────────────────────────────────────────────────
+// Core entity. `language` drives syntax highlighting; `isPublic` enables future
+// sharing. Full-text search is handled via a GIN index on the generated column
+// (applied in migration SQL) — Prisma itself doesn't expose tsvector natively.
+
+model Snippet {
+  id          String   @id @default(cuid())
+  title       String
+  code        String   // stored as TEXT — no length cap for large snippets
+  language    String   // e.g. "typescript", "python"
+  description String?
+  isPublic    Boolean  @default(false)
+  isFavorite  Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  notes       Note[]
+  snippetTags SnippetTag[]
+  snippetCols SnippetCollection[]
+
+  @@index([userId])
+  @@index([language])
+  @@index([userId, isFavorite])
+  @@index([createdAt(sort: Desc)])
+  @@map("snippets")
+}
+
+// ─── Note ─────────────────────────────────────────────────────────────────────
+// 1:N — one snippet can have many notes (e.g. revision history, comments).
+
+model Note {
+  id        String   @id @default(cuid())
+  body      String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  snippetId String
+  snippet   Snippet @relation(fields: [snippetId], references: [id], onDelete: Cascade)
+
+  @@index([snippetId])
+  @@map("notes")
+}
+
+// ─── Tag ──────────────────────────────────────────────────────────────────────
+// Tags are scoped per user so "react" for user A ≠ "react" for user B.
+// The unique constraint prevents duplicate tag names per user.
+
+model Tag {
+  id    String @id @default(cuid())
+  name  String
+  color String? // optional hex color for UI badges
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  snippetTags SnippetTag[]
+
+  @@unique([userId, name])   // no duplicate tag names per user
+  @@index([userId])
+  @@map("tags")
+}
+
+// ─── SnippetTag (M:N join) ────────────────────────────────────────────────────
+// Explicit join table gives us a place to add metadata later (e.g. taggedAt).
+
+model SnippetTag {
+  snippetId String
+  tagId     String
+
+  snippet Snippet @relation(fields: [snippetId], references: [id], onDelete: Cascade)
+  tag     Tag     @relation(fields: [tagId], references: [id], onDelete: Cascade)
+
+  @@id([snippetId, tagId])
+  @@index([tagId])
+  @@map("snippet_tags")
+}
+
+// ─── Collection ───────────────────────────────────────────────────────────────
+// Supports nested folders via self-referential `parentId`.
+// Depth is intentionally unlimited — enforce a max depth in app logic if needed.
+
+model Collection {
+  id          String  @id @default(cuid())
+  name        String
+  description String?
+  isPublic    Boolean @default(false)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // Self-referential for nested folders
+  parentId String?
+  parent   Collection?  @relation("CollectionTree", fields: [parentId], references: [id])
+  children Collection[] @relation("CollectionTree")
+
+  snippetCols SnippetCollection[]
+
+  @@index([userId])
+  @@index([parentId])
+  @@map("collections")
+}
+
+// ─── SnippetCollection (M:N join) ─────────────────────────────────────────────
+// A snippet can live in multiple collections; a collection holds many snippets.
+
+model SnippetCollection {
+  snippetId    String
+  collectionId String
+  addedAt      DateTime @default(now())
+
+  snippet    Snippet    @relation(fields: [snippetId], references: [id], onDelete: Cascade)
+  collection Collection @relation(fields: [collectionId], references: [id], onDelete: Cascade)
+
+  @@id([snippetId, collectionId])
+  @@index([collectionId])
+  @@map("snippet_collections")
 }
