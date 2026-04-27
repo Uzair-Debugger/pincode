@@ -13,4 +13,8 @@ export const env = {
   PORT: parseInt(process.env.PORT ?? '5000', 10),
   DATABASE_URL: requireEnv('DATABASE_URL'),
   ALLOWED_ORIGINS: (process.env.ALLOWED_ORIGINS ?? 'http://localhost:3000').split(','),
+  JWT_ACCESS_SECRET: requireEnv('JWT_ACCESS_SECRET'),
+  JWT_REFRESH_SECRET: requireEnv('JWT_REFRESH_SECRET'),
+  JWT_ACCESS_EXPIRES_IN: process.env.JWT_ACCESS_EXPIRES_IN ?? '15m',
+  JWT_REFRESH_EXPIRES_IN: process.env.JWT_REFRESH_EXPIRES_IN ?? '7d',
 } as const;
