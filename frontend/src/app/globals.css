@@ -1,0 +1,5 @@
+@import "tailwindcss";
+
+/* Tailwind v4 dark mode: class-based so ThemeContext controls it */
+@custom-variant dark (&:where(.dark, .dark *));
+
