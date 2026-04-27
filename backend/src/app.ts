@@ -1,5 +1,6 @@
 import express, { Application } from 'express';
 import cors from 'cors';
+import cookieParser from 'cookie-parser';
 import { requestLogger } from './middleware/requestLogger';
 import { errorHandler } from './middleware/errorHandler';
 import { env } from './config/env';
@@ -13,6 +14,7 @@ app.use(cors({
 }));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+app.use(cookieParser());
 app.use(requestLogger);
 
 app.use('/api/v1', router);

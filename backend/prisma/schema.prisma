@@ -8,19 +8,40 @@ datasource db {
 }
 
 // ─── User ────────────────────────────────────────────────────────────────────
-model User {
-  id        String   @id @default(cuid())
-  email     String   @unique
-  name      String?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+enum Role {
+  USER
+  ADMIN
+}
 
-  snippets    Snippet[]
-  collections Collection[]
-  tags        Tag[]
+model User {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  name         String?
+  password     String
+  role         Role     @default(USER)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  snippets      Snippet[]
+  collections   Collection[]
+  tags          Tag[]
+  refreshTokens RefreshToken[]
 
   @@index([email])
   @@map("users")
+}
+
+// ─── RefreshToken ─────────────────────────────────────────────────────────────
+model RefreshToken {
+  id        String   @id @default(cuid())
+  token     String   @unique
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@map("refresh_tokens")
 }
 
 // ─── Snippet ──────────────────────────────────────────────────────────────────
