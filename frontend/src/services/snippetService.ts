@@ -2,9 +2,10 @@ import apiClient from '@/lib/apiClient';
 import type { Snippet, PaginatedSnippets, SnippetFilters, CreateSnippetInput, UpdateSnippetInput, Note } from '@/types/domain';
 
 export const snippetService = {
-  async getMany(filters: SnippetFilters = {}): Promise<PaginatedSnippets> {
-    const res = await apiClient.get<{ status: string; data: PaginatedSnippets }>('/snippets', { params: filters });
-    return res.data.data;
+  async getMany(filters: SnippetFilters = {}, signal?: AbortSignal): Promise<PaginatedSnippets> {
+    const res = await apiClient.get<{ status: string; data: { items: Snippet[]; total: number; page: number; limit: number; totalPages: number } }>('/snippets', { params: filters, signal });
+    const { items, ...rest } = res.data.data;
+    return { snippets: items, ...rest };
   },
 
   async getOne(id: string): Promise<Snippet> {
@@ -34,5 +35,14 @@ export const snippetService = {
   async addNote(snippetId: string, body: string): Promise<Note> {
     const res = await apiClient.post<{ status: string; data: { note: Note } }>(`/snippets/${snippetId}/notes`, { body });
     return res.data.data.note;
+  },
+
+  async updateNote(snippetId: string, noteId: string, body: string): Promise<Note> {
+    const res = await apiClient.patch<{ status: string; data: { note: Note } }>(`/snippets/${snippetId}/notes/${noteId}`, { body });
+    return res.data.data.note;
+  },
+
+  async deleteNote(snippetId: string, noteId: string): Promise<void> {
+    await apiClient.delete(`/snippets/${snippetId}/notes/${noteId}`);
   },
 };
