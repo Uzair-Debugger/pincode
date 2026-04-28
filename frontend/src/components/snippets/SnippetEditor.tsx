@@ -35,7 +35,7 @@ export function SnippetEditor({ initial, onSave, onCancel, isSaving }: SnippetEd
       return;
     }
     setError(null);
-    await onSave(form);
+    await onSave({ ...form, description: form.description?.trim() || undefined });
   };
 
   const fieldClass = cn(

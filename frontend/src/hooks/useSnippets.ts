@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
+import axios from 'axios';
 import { snippetService } from '@/services/snippetService';
 import type { Snippet, PaginatedSnippets, SnippetFilters, CreateSnippetInput, UpdateSnippetInput } from '@/types/domain';
 
@@ -25,13 +26,14 @@ export function useSnippets(initialFilters: SnippetFilters = {}): UseSnippetsRet
   const fetchSnippets = useCallback(async (f: SnippetFilters) => {
     abortRef.current?.abort();
     abortRef.current = new AbortController();
+    const signal = abortRef.current.signal;
     setIsLoading(true);
     setError(null);
     try {
-      const result = await snippetService.getMany(f);
+      const result = await snippetService.getMany(f, signal);
       setData(result);
     } catch (err: unknown) {
-      if ((err as { name?: string }).name !== 'CanceledError') {
+      if (!axios.isCancel(err)) {
         setError((err as Error).message ?? 'Failed to load snippets');
       }
     } finally {
