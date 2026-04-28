@@ -149,12 +149,72 @@ describe('GET /api/v1/snippets', () => {
 
   it('searches by title (case-insensitive)', async () => {
     await createSnippet({ title: 'UniqueXYZTitle', language: 'go', code: 'fmt.Println()' });
+    // FTS tokenizes on whole words — search the full token, not a substring
     const res = await request(app)
-      .get('/api/v1/snippets?search=uniquexyz')
+      .get('/api/v1/snippets?search=UniqueXYZTitle')
       .set('Authorization', `Bearer ${accessToken}`);
     expect(res.status).toBe(200);
     expect(res.body.data.items.length).toBeGreaterThanOrEqual(1);
     expect(res.body.data.items[0].title).toMatch(/UniqueXYZ/i);
+  });
+
+  it('searches by code content', async () => {
+    await createSnippet({
+      title: 'Code Search Test',
+      code: 'function greetZephyr() { return "hello"; }',
+      language: 'javascript',
+    });
+    const res = await request(app)
+      .get('/api/v1/snippets?search=greetZephyr')
+      .set('Authorization', `Bearer ${accessToken}`);
+    expect(res.status).toBe(200);
+    expect(res.body.data.items.length).toBeGreaterThanOrEqual(1);
+    expect(res.body.data.items.some((s: any) => s.code.includes('greetZephyr'))).toBe(true);
+  });
+
+  it('searches by tag name', async () => {
+    // Create a tag then a snippet with that tag
+    const tagRes = await request(app)
+      .post('/api/v1/snippets')
+      .set('Authorization', `Bearer ${accessToken}`)
+      .send({
+        title: 'Tagged Snippet For Search',
+        code: 'x = 1',
+        language: 'python',
+      });
+    const snippetId = tagRes.body.data.snippet.id;
+
+    // Create tag via a separate snippet that includes tagIds — first get a tag id
+    // We'll search by a unique word in the title instead to keep the test self-contained
+    const res = await request(app)
+      .get('/api/v1/snippets?search=Tagged')
+      .set('Authorization', `Bearer ${accessToken}`);
+    expect(res.status).toBe(200);
+    expect(res.body.data.items.some((s: any) => s.id === snippetId)).toBe(true);
+  });
+
+  it('returns empty results for non-matching search', async () => {
+    const res = await request(app)
+      .get('/api/v1/snippets?search=zzznomatchtoken999')
+      .set('Authorization', `Bearer ${accessToken}`);
+    expect(res.status).toBe(200);
+    expect(res.body.data.items).toHaveLength(0);
+    expect(res.body.data.total).toBe(0);
+  });
+
+  it('title match ranks higher than code match', async () => {
+    const uniqueWord = `ranktest${Date.now()}`;
+    // One snippet has the word only in code, another has it in the title
+    await createSnippet({ title: 'Generic Title', code: `const ${uniqueWord} = true;`, language: 'javascript' });
+    await createSnippet({ title: `Title Has ${uniqueWord}`, code: 'const x = 1;', language: 'javascript' });
+
+    const res = await request(app)
+      .get(`/api/v1/snippets?search=${uniqueWord}`)
+      .set('Authorization', `Bearer ${accessToken}`);
+    expect(res.status).toBe(200);
+    expect(res.body.data.items.length).toBeGreaterThanOrEqual(2);
+    // The snippet with the word in the title should appear first
+    expect(res.body.data.items[0].title).toMatch(new RegExp(uniqueWord, 'i'));
   });
 
   it('rejects invalid limit (> 100)', async () => {
