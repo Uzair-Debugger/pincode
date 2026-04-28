@@ -47,19 +47,19 @@ export function useSnippets(initialFilters: SnippetFilters = {}): UseSnippetsRet
 
   const createSnippet = useCallback(async (input: CreateSnippetInput) => {
     const snippet = await snippetService.create(input);
-    setData((prev) => ({ ...prev, snippets: [snippet, ...prev.snippets], total: prev.total + 1 }));
+    setData((prev) => ({ ...prev, snippets: [snippet, ...(prev.snippets ?? [])], total: prev.total + 1 }));
     return snippet;
   }, []);
 
   const updateSnippet = useCallback(async (id: string, input: UpdateSnippetInput) => {
     const updated = await snippetService.update(id, input);
-    setData((prev) => ({ ...prev, snippets: prev.snippets.map((s) => (s.id === id ? updated : s)) }));
+    setData((prev) => ({ ...prev, snippets: (prev.snippets ?? []).map((s) => (s.id === id ? updated : s)) }));
     return updated;
   }, []);
 
   const deleteSnippet = useCallback(async (id: string) => {
     await snippetService.delete(id);
-    setData((prev) => ({ ...prev, snippets: prev.snippets.filter((s) => s.id !== id), total: prev.total - 1 }));
+    setData((prev) => ({ ...prev, snippets: (prev.snippets ?? []).filter((s) => s.id !== id), total: prev.total - 1 }));
   }, []);
 
   return { ...data, isLoading, error, filters, setFilters, createSnippet, updateSnippet, deleteSnippet, refresh: () => fetchSnippets(filters) };

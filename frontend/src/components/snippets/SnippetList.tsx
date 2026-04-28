@@ -29,8 +29,10 @@ export function SnippetList({ snippets, isLoading, onToggleFavorite, onDelete }:
       </div>
     );
   }
+  // ?. safely accesses .length only if snippets exists
+  // prevents crash when snippets is null/undefined
 
-  if (!snippets.length) {
+  if (!snippets?.length) {
     return (
       <div className="flex flex-col items-center justify-center py-20 text-gray-400 dark:text-gray-600 gap-2">
         <svg className="size-12" fill="none" stroke="currentColor" viewBox="0 0 24 24">
