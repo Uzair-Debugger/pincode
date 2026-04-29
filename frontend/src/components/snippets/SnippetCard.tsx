@@ -53,7 +53,9 @@ export function SnippetCard({ snippet, onToggleFavorite, onDelete }: SnippetCard
 
       <div className="flex items-center gap-2 flex-wrap">
         <LanguageBadge language={snippet.language} />
-        {snippet.snippetTags.map(({ tag }) => (
+
+        {/* Fix: Safely access snippetTags only if it exists */}
+        {snippet.snippetTags?.map(({ tag }) => (
           <span key={tag.id} className="inline-flex items-center rounded-full px-2 py-0.5 text-xs bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300">
             {tag.name}
           </span>
