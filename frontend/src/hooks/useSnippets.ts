@@ -32,12 +32,15 @@ export function useSnippets(initialFilters: SnippetFilters = {}): UseSnippetsRet
     try {
       const result = await snippetService.getMany(f, signal);
       setData(result);
-    } catch (err: unknown) {
-      if (!axios.isCancel(err)) {
-        setError((err as Error).message ?? 'Failed to load snippets');
-      }
+      
+    } catch (err: any) {
+        if (err.name === 'CanceledError' || err.name === 'AbortError') return;
+        setError(err.message ?? 'Failed to load snippets');
+
+        // Fix: avoid running even after aborted request
     } finally {
-      setIsLoading(false);
+      if(!abortRef.current?.signal.aborted){
+      setIsLoading(false);}
     }
   }, []);
 
