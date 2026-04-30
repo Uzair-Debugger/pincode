@@ -57,14 +57,14 @@ Developers constantly lose time re-writing or searching for past code across cha
 ## 📸 Demo & Screenshots
 
 ### 🔗 Live Demo
-> Add your live demo link here
+> https://pincode-frontend.vercel.app
 
 ### 🖼 Screenshots
-> Replace placeholders with actual screenshots
+#### Login
+![Login](/frontend/public/login.png)
+#### Dashboard
+![Pincode](/frontend/public/image.png)
 
-- Login Screen  
-- Snippets Dashboard  
-- Collection Detail View  
 
 
 ---

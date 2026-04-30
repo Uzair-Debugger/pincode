@@ -11,5 +11,7 @@
       "src": "/(.*)",
       "dest": "api/index.ts"
     }
-  ]
+  ],
+  "installCommand": "npm install && prisma generate",
+  "buildCommand": "npm run build && prisma generate"
 }
