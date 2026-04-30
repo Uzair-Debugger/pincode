@@ -4,8 +4,11 @@
  * Run: npx ts-node prisma/seed.ts
  */
 import { PrismaClient } from "@prisma/client";
+import bcrypt from 'bcrypt';
 
 const prisma = new PrismaClient();
+const SALT_ROUNDS = 12;
+const DEFAULT_PASSWORD = "seedpassword123";
 
 function assert(condition: boolean, message: string) {
   if (!condition) throw new Error(`FAIL: ${message}`);
@@ -21,12 +24,24 @@ async function main() {
   await prisma.snippet.deleteMany();
   await prisma.collection.deleteMany();
   await prisma.tag.deleteMany();
-  await prisma.user.deleteMany({ where: { email: "seed@pincode.dev" } });
+  await prisma.refreshToken.deleteMany();
+  await prisma.user.deleteMany({ 
+    where: { 
+      email: { 
+        in: ["seed@pincode.dev", "seed2@pincode.dev"] 
+      } 
+    } 
+  });
 
   // ── 1. User ────────────────────────────────────────────────────────────────
   console.log("\n── 1. User ──");
+  const hashedPassword = await bcrypt.hash(DEFAULT_PASSWORD, SALT_ROUNDS);
   const user = await prisma.user.create({
-    data: { email: "seed@pincode.dev", name: "Seed User" },
+    data: { 
+      email: "seed@pincode.dev", 
+      name: "Seed User",
+      password: hashedPassword
+    },
   });
   assert(!!user.id, "User created with cuid id");
   assert(user.email === "seed@pincode.dev", "User email stored correctly");
@@ -127,7 +142,14 @@ async function main() {
 
   // ── 9. Search / filter indexes ─────────────────────────────────────────────
   console.log("\n── 9. Search & filter queries (index smoke test) ──");
-  const u2 = await prisma.user.create({ data: { email: "seed@pincode.dev", name: "Seed User" } });
+  const u2 = await prisma.user.create({ 
+    data: { 
+      email: "seed2@pincode.dev", 
+      name: "Seed User 2",
+      password: await bcrypt.hash(DEFAULT_PASSWORD, SALT_ROUNDS)
+    } 
+  });
+  
   await prisma.snippet.createMany({
     data: [
       { title: "Fetch API",    code: "fetch('/api')", language: "javascript", userId: u2.id, isFavorite: true },
@@ -147,7 +169,8 @@ async function main() {
   });
   assert(byTitle.length === 1, "Case-insensitive title search works");
 
-  // cleanup u2
+  // cleanup u2 (including refresh tokens)
+  await prisma.refreshToken.deleteMany({ where: { userId: u2.id } });
   await prisma.user.delete({ where: { id: u2.id } });
 
   console.log("\n✅  All tests passed.\n");
