@@ -9,7 +9,7 @@ import router from './routes';
 const app: Application = express();
 
 app.use(cors({
-  origin: env.ALLOWED_ORIGINS,
+  origin: env.ALLOWED_ORIGINS || "https://pincode-frontend.vercel.app",
   credentials: true,
 }));
 app.use(express.json());
