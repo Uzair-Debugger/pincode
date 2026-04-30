@@ -1,0 +1,7 @@
+node_modules
+.git
+README.md
+tests
+*.test.ts
+jest.config.json
+prisma/seed.ts
